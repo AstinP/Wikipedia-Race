@@ -15,10 +15,20 @@
         <div>Current: {{ title }}</div>
         <div>Target: {{ target }}</div>
         <div>Clicks: {{ clicks }}</div>
+        <div>Time: <span id="timer">{{ time }}</span>s</div>
+        <div>Best: {{ highscore }}</div>
         <a href="{{ url_for('restart') }}" style="color: #ff4d4d; text-decoration: none;">Restart</a>
     </div>
     <div class="content">
         {{ content | safe }}
     </div>
+
+    <script>
+        let seconds = parseInt(document.getElementById('timer').innerText) || 0;
+        setInterval(() => {
+            seconds++;
+            document.getElementById('timer').innerText = seconds;
+        }, 1000);
+    </script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import time
 from urllib.parse import unquote, urlparse
 from flask import Flask, render_template, request, session, redirect, url_for
 import requests
@@ -24,6 +25,7 @@ def index():
         session['target'] = target
         session['clicks'] = 0
         session['path'] = [start]
+        session['start_time'] = time.time()
         return redirect(url_for('play', title=start))
     return render_template('index.html')
 
@@ -35,7 +37,17 @@ def play(title):
     target = session['target']
     
     if title.lower().replace('_', ' ') == target.lower().replace('_', ' '):
-        return render_template('win.html', clicks=session.get('clicks', 0), path=session.get('path', []), target=target)
+        total_time = int(time.time() - session.get('start_time', time.time()))
+        clicks = session.get('clicks', 0)
+        
+        highscore = session.get('highscore')
+        if highscore is None or clicks < highscore:
+            session['highscore'] = clicks
+            highscore = clicks
+
+        return render_template('win.html', clicks=clicks, path=session.get('path', []), target=target, time=total_time, highscore=highscore)
+
+    elapsed_time = int(time.time() - session.get('start_time', time.time()))
 
     resp = requests.get(f"https://en.wikipedia.org/api/rest_v1/page/html/{title}", headers=HEADERS)
     if resp.status_code != 200:
@@ -57,7 +69,15 @@ def play(title):
         else:
             a['href'] = '#'
 
-    return render_template('game.html', content=str(soup), title=title.replace('_', ' '), target=target.replace('_', ' '), clicks=session.get('clicks', 0))
+    return render_template(
+        'game.html',
+        content=str(soup),
+        title=title.replace('_', ' '),
+        target=target.replace('_', ' '),
+        clicks=session.get('clicks', 0),
+        time=elapsed_time,
+        highscore=session.get('highscore', 'N/A')
+    )
 
 @app.route('/track/<path:title>')
 def track(title):
@@ -69,7 +89,10 @@ def track(title):
 
 @app.route('/restart')
 def restart():
+    hs = session.get('highscore')
     session.clear()
+    if hs is not None:
+        session['highscore'] = hs
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
