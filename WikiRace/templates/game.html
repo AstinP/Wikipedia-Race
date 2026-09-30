@@ -15,7 +15,7 @@
         <div>Current: {{ title }}</div>
         <div>Target: {{ target }}</div>
         <div>Clicks: {{ clicks }}</div>
-        <a href="/" style="color: #ff4d4d; text-decoration: none;">Restart</a>
+        <a href="{{ url_for('restart') }}" style="color: #ff4d4d; text-decoration: none;">Restart</a>
     </div>
     <div class="content">
         {{ content | safe }}
