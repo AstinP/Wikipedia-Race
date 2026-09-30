@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Wikirace - Victory</title>
+    <title>Wikirace - Game</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,6 +46,7 @@
         }
 
         .win-banner {
+            display: none;
             background-color: #2ecc71;
             color: white;
             text-align: center;
@@ -61,6 +62,11 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .active-game-area {
+            text-align: center;
+            padding: 20px 0;
         }
 
         .stats-grid {
@@ -151,67 +157,150 @@
             background-color: #27ae60;
             transform: translateY(-1px);
         }
+
+        .summary-section {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="top">
         <div class="item"><strong>Start:</strong> 6 7</div>
         <div class="item"><strong>Target:</strong> Cat</div>
-        <div class="item"><strong>Clicks:</strong> 4</div>
-        <div class="item"><strong>Time:</strong> 2m 14s</div>
-        <button class="btn-top">Play Again</button>
+        <div class="item"><strong>Clicks:</strong> <span id="clicks_display">0</span></div>
+        <div class="item"><strong>Time:</strong> <span id="time_display_top">0s</span></div>
+        <button class="btn-top" onclick="restartGame()">Restart</button>
     </div>
 
-    <div class="win-banner">
+    <div id="win_banner" class="win-banner">
         Oh yeah, boom shakalaka! You reached the target!
     </div>
 
     <div class="card">
-        <h1>Race Summary</h1>
-        <hr>
-
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-label">Links Clicked</div>
-                <div class="stat-number">4</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Time Taken</div>
-                <div class="stat-number">2m 14s</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Target Reached</div>
-                <div class="stat-number">Cat</div>
-            </div>
+        <!-- Live Game View -->
+        <div id="game_active_view" class="active-game-area">
+            <h2>Current Article: <span style="color: #3498db;">6 7</span></h2>
+            <p>Find links on the page to navigate towards <strong>Cat</strong>.</p>
+            <br>
+            <button class="main_button" onclick="finishRace()">Reach Target (Cat)</button>
         </div>
 
-        <h3>Your Path</h3>
-        <ul class="path-list">
-            <li class="path-step">
-                <span class="step-num">1</span>
-                <span>6 7</span>
-            </li>
-            <li class="path-step">
-                <span class="step-num">2</span>
-                <span>67</span>
-            </li>
-            <li class="path-step">
-                <span class="step-num">3</span>
-                <span>1967</span>
-            </li>
-            <li class="path-step">
-                <span class="step-num">4</span>
-                <span>August 6</span>
-            </li>
-            <li class="path-step final">
-                <span class="step-num">5</span>
-                <span>Domestic cat <span class="redirect-tag">(redirects to Cat)</span></span>
-            </li>
-        </ul>
+        <!-- End Screen Summary -->
+        <div id="game_summary_view" class="summary-section">
+            <h1>Race Summary</h1>
+            <hr>
 
-        <div class="actions">
-            <button class="main_button">Play Again</button>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Links Clicked</div>
+                    <div class="stat-number">4</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Time Taken</div>
+                    <div class="stat-number" id="time_display_card">0s</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Target Reached</div>
+                    <div class="stat-number">Cat</div>
+                </div>
+            </div>
+
+            <h3>Your Path</h3>
+            <ul class="path-list">
+                <li class="path-step">
+                    <span class="step-num">1</span>
+                    <span>6 7</span>
+                </li>
+                <li class="path-step">
+                    <span class="step-num">2</span>
+                    <span>67</span>
+                </li>
+                <li class="path-step">
+                    <span class="step-num">3</span>
+                    <span>1967</span>
+                </li>
+                <li class="path-step">
+                    <span class="step-num">4</span>
+                    <span>August 6</span>
+                </li>
+                <li class="path-step final">
+                    <span class="step-num">5</span>
+                    <span>Domestic cat <span class="redirect-tag">(redirects to Cat)</span></span>
+                </li>
+            </ul>
+
+            <div class="actions">
+                <button class="main_button" onclick="restartGame()">Play Again</button>
+            </div>
         </div>
     </div>
+
+    <script>
+        let timerInterval = null;
+        let isFinished = false;
+
+        function initGame() {
+            let raceStart = sessionStorage.getItem("race_start_time");
+
+            if (!raceStart) {
+                raceStart = Date.now();
+                sessionStorage.setItem("race_start_time", raceStart);
+            } else {
+                raceStart = parseInt(raceStart, 10);
+            }
+
+            let raceEnd = sessionStorage.getItem("race_end_time");
+            if (raceEnd) {
+                renderEndState(raceStart, parseInt(raceEnd, 10));
+                return;
+            }
+
+            timerInterval = setInterval(() => {
+                if (!isFinished) {
+                    let now = Date.now();
+                    let formatted = formatDuration(now - raceStart);
+                    document.getElementById("time_display_top").innerText = formatted;
+                }
+            }, 1000);
+        }
+
+        function formatDuration(ms) {
+            let totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            let minutes = Math.floor(totalSeconds / 60);
+            let seconds = totalSeconds % 60;
+            return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+        }
+
+        function finishRace() {
+            isFinished = true;
+            if (timerInterval) clearInterval(timerInterval);
+
+            let raceStart = parseInt(sessionStorage.getItem("race_start_time") || Date.now(), 10);
+            let raceEnd = Date.now();
+            sessionStorage.setItem("race_end_time", raceEnd);
+
+            renderEndState(raceStart, raceEnd);
+        }
+
+        function renderEndState(raceStart, raceEnd) {
+            let formattedTime = formatDuration(raceEnd - raceStart);
+
+            document.getElementById("time_display_top").innerText = formattedTime;
+            document.getElementById("time_display_card").innerText = formattedTime;
+            document.getElementById("clicks_display").innerText = "4";
+
+            document.getElementById("win_banner").style.display = "block";
+            document.getElementById("game_active_view").style.display = "none";
+            document.getElementById("game_summary_view").style.display = "block";
+        }
+
+        function restartGame() {
+            if (timerInterval) clearInterval(timerInterval);
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        initGame();
+    </script>
 </body>
 </html>
